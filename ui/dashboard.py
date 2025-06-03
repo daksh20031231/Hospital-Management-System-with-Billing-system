@@ -1,7 +1,7 @@
 # ui/dashboard.py
 from ui.billing import BillingWindow
 from ui.patients import PatientWindow
-from doctors import DoctorWindow
+from ui.doctors import DoctorWindow
 from ui.appointments import AppointmentWindow
 
 
