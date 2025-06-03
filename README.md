@@ -65,5 +65,3 @@ Feel free to use or modify it as you like.
 
 Feel free to contribute or report issues!
 
-                                              Made by DAKSH SHARMA
-
