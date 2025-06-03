@@ -58,8 +58,10 @@ This will open the login window. From there, you can access all the features.
 2) Add more modules like staff management, inventory, etc.
 3) Updating GUI
 
-License
-MIT License © Daksh Sharma
+## License
+
+This project is for personal use and learning purposes only.  
+Feel free to use or modify it as you like.
 
 Feel free to contribute or report issues!
 
