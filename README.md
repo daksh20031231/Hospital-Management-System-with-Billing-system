@@ -1,4 +1,4 @@
-# Hospital Management System with Billing
+# Hospital Management System with Billing System
 
 This is a desktop Hospital Management System built with Python and PyQt5, featuring patient management, appointment scheduling, and billing with auto-generated PDF invoices.
 
