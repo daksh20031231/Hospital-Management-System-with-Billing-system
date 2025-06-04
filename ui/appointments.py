@@ -2,7 +2,8 @@ from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLineEdit,
     QPushButton, QTableWidget, QTableWidgetItem, QMessageBox, QLabel, QHBoxLayout, QComboBox
 )
-
+from PyQt5.QtGui import QColor, QPalette, QFont
+from PyQt5.QtCore import Qt
 import sqlite3
 import os
 
@@ -11,7 +12,7 @@ class AppointmentWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Manage Appointments")
-        self.setGeometry(200, 200, 700, 500)
+        self.setGeometry(200, 200, 800, 550)  # slightly wider for buttons
         self.selected_appointment_id = None
         self.setup_ui()
         self.load_appointments()
@@ -24,23 +25,24 @@ class AppointmentWindow(QWidget):
 
         form_layout = QFormLayout()
 
-        # Patient input (ID or Name)
         self.patient_input = QLineEdit()
-        self.patient_input.textChanged.connect(self.show_patient_details)  # connect text change
+        self.patient_input.textChanged.connect(self.show_patient_details)
         form_layout.addRow("Patient ID:", self.patient_input)
 
-        # Label to show patient details dynamically
         self.patient_details_label = QLabel("")
+        self.patient_details_label.setStyleSheet("color: #555; font-style: italic;")
         form_layout.addRow("Patient Details:", self.patient_details_label)
 
         self.doctor_combo = QComboBox()
         form_layout.addRow("Doctor:", self.doctor_combo)
 
         self.date_input = QLineEdit()
-        form_layout.addRow("Date (YYYY-MM-DD):", self.date_input)
+        self.date_input.setPlaceholderText("YYYY-MM-DD")
+        form_layout.addRow("Date:", self.date_input)
 
         self.time_input = QLineEdit()
-        form_layout.addRow("Time (HH:MM):", self.time_input)
+        self.time_input.setPlaceholderText("HH:MM (24h)")
+        form_layout.addRow("Time:", self.time_input)
 
         self.purpose_input = QLineEdit()
         form_layout.addRow("Purpose:", self.purpose_input)
@@ -48,14 +50,50 @@ class AppointmentWindow(QWidget):
         self.load_doctor_list()
 
         self.add_btn = QPushButton("Add Appointment")
+        self.add_btn.setStyleSheet(
+            """
+            QPushButton {
+                background-color: #28a745;
+                color: white;
+                font-weight: bold;
+                padding: 8px 15px;
+                border-radius: 6px;
+            }
+            QPushButton:hover {
+                background-color: #218838;
+            }
+            """
+        )
         self.add_btn.clicked.connect(self.add_or_update_appointment)
 
         layout.addLayout(form_layout)
         layout.addWidget(self.add_btn)
 
         self.table = QTableWidget()
-        self.table.setColumnCount(7)
-        self.table.setHorizontalHeaderLabels(["ID", "Patient", "Contact", "Doctor", "Date", "Time", "Purpose"])
+        self.table.setColumnCount(8)
+        self.table.setHorizontalHeaderLabels(["ID", "Patient", "Contact", "Doctor", "Date of Appointment", "Time", "Purpose", "Actions"])
+
+        # Header styling: blue background with white bold text
+        header = self.table.horizontalHeader()
+        header.setStyleSheet("QHeaderView::section { background-color: #007bff; color: white; font-weight: bold; }")
+
+        # Alternate row colors
+        self.table.setAlternatingRowColors(True)
+        self.table.setStyleSheet("""
+            QTableWidget {
+                background-color: #f9f9f9;
+                alternate-background-color: #e8f0fe;
+            }
+            QTableWidget::item:selected {
+                background-color: #a3c1ff;
+                color: black;
+            }
+        """)
+
+        # Set font for table items
+        font = QFont("Segoe UI", 9)
+        self.table.setFont(font)
+
         layout.addWidget(self.table)
 
         self.setLayout(layout)
@@ -88,116 +126,69 @@ class AppointmentWindow(QWidget):
 
         for row_idx, row in enumerate(rows):
             self.table.insertRow(row_idx)
-            # Set data for columns 0 to 6 (7 columns)
             for col_idx, val in enumerate(row):
-                self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(val)))
+                item = QTableWidgetItem(str(val))
+                item.setTextAlignment(Qt.AlignCenter)
+                item.setForeground(QColor("black"))
+                self.table.setItem(row_idx, col_idx, item)
 
-            # Add buttons in last column (index 6) – shift buttons to separate column
+            # Create action buttons with colors
             reschedule_btn = QPushButton("Reschedule")
-            delete_btn = QPushButton("Delete")
-            done_btn = QPushButton("Done")
-
+            reschedule_btn.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: #ffc107;  /* amber */
+                    color: black;
+                    border-radius: 5px;
+                    padding: 4px 8px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #e0a800;
+                }
+                """
+            )
             reschedule_btn.clicked.connect(lambda _, r=row: self.reschedule_appointment(r))
+
+            delete_btn = QPushButton("Delete")
+            delete_btn.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: #dc3545;  /* red */
+                    color: white;
+                    border-radius: 5px;
+                    padding: 4px 8px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #c82333;
+                }
+                """
+            )
             delete_btn.clicked.connect(lambda _, id=row[0]: self.delete_appointment(id))
+
+            done_btn = QPushButton("Done")
+            done_btn.setStyleSheet(
+                """
+                QPushButton {
+                    background-color: #28a745;  /* green */
+                    color: white;
+                    border-radius: 5px;
+                    padding: 4px 8px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #218838;
+                }
+                """
+            )
             done_btn.clicked.connect(lambda _, id=row[0]: self.mark_done_appointment(id))
 
             action_widget = QWidget()
             action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(5, 0, 5, 0)
-            action_layout.setSpacing(5)
+            action_layout.setContentsMargins(5, 2, 5, 2)
+            action_layout.setSpacing(8)
             action_layout.addWidget(reschedule_btn)
-            action_layout.addWidget(delete_btn)
-            action_layout.addWidget(done_btn)
-
-            # Instead of overwriting Purpose column, add buttons to next column (7th)
-            # So we need one more column or change table to 8 columns
-            # To keep it simple, let's add buttons in last column 7 (so increase column count to 8)
-            # Or put buttons in the Purpose column (index 6) as before
-            # Since you want contact shown, we have 7 columns for data; put buttons in a new 8th column.
-
-            # So change column count to 8:
-            # Update this in setup_ui and here accordingly
-
-            # But since you requested only to show contact in appointment list, let's put buttons in column 7.
-            # So let's increase column count to 8 in setup_ui and add header for actions
-
-        self.table.resizeColumnsToContents()
-        self.table.resizeRowsToContents()
-
-    # To fix buttons placement correctly, update setup_ui and load_appointments column counts and headers as below:
-
-    def setup_ui(self):
-        layout = QVBoxLayout()
-
-        form_layout = QFormLayout()
-
-        self.patient_input = QLineEdit()
-        self.patient_input.textChanged.connect(self.show_patient_details)
-        form_layout.addRow("Patient ID:", self.patient_input)
-
-        self.patient_details_label = QLabel("")
-        form_layout.addRow("Patient Details:", self.patient_details_label)
-
-        self.doctor_combo = QComboBox()
-        form_layout.addRow("Doctor:", self.doctor_combo)
-
-        self.date_input = QLineEdit()
-        form_layout.addRow("Date (YYYY-MM-DD):", self.date_input)
-
-        self.time_input = QLineEdit()
-        form_layout.addRow("Time (HH:MM):", self.time_input)
-
-        self.purpose_input = QLineEdit()
-        form_layout.addRow("Purpose:", self.purpose_input)
-
-        self.load_doctor_list()
-
-        self.add_btn = QPushButton("Add Appointment")
-        self.add_btn.clicked.connect(self.add_or_update_appointment)
-
-        layout.addLayout(form_layout)
-        layout.addWidget(self.add_btn)
-
-        self.table = QTableWidget()
-        self.table.setColumnCount(8)
-        self.table.setHorizontalHeaderLabels(["ID", "Patient", "Contact", "Doctor", "Date", "Time", "Purpose", "Actions"])
-        layout.addWidget(self.table)
-
-        self.setLayout(layout)
-
-    def load_appointments(self):
-        conn = sqlite3.connect(self.get_db_path())
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT a.id, p.name, p.contact, d.name, a.date, a.time, a.purpose
-            FROM appointments a
-            JOIN patients p ON a.patient_id = p.id
-            JOIN doctors d ON a.doctor_id = d.id
-        """)
-        rows = cursor.fetchall()
-        conn.close()
-
-        self.table.setRowCount(0)
-
-        for row_idx, row in enumerate(rows):
-            self.table.insertRow(row_idx)
-            for col_idx, val in enumerate(row):
-                self.table.setItem(row_idx, col_idx, QTableWidgetItem(str(val)))
-
-            reschedule_btn = QPushButton("Reschedule")
-            delete_btn = QPushButton("Delete")
-            done_btn = QPushButton("Done")
-
-            delete_btn = QPushButton("Delete")
-            done_btn = QPushButton("Done")
-
-            delete_btn.clicked.connect(lambda _, id=row[0]: self.delete_appointment(id))
-            done_btn.clicked.connect(lambda _, id=row[0]: self.mark_done_appointment(id))
-
-            action_widget = QWidget()
-            action_layout = QHBoxLayout(action_widget)
-            action_layout.setContentsMargins(5, 0, 5, 0)
-            action_layout.setSpacing(5)
             action_layout.addWidget(delete_btn)
             action_layout.addWidget(done_btn)
 
@@ -283,7 +274,7 @@ class AppointmentWindow(QWidget):
 
     def clear_form(self):
         self.patient_input.clear()
-        self.patient_details_label.clear()  # clear patient details on reset
+        self.patient_details_label.clear()
         self.date_input.clear()
         self.time_input.clear()
         self.purpose_input.clear()

@@ -1,10 +1,11 @@
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QFormLayout, QLineEdit,
     QPushButton, QTableWidget, QTableWidgetItem, QMessageBox,
-    QLabel, QHBoxLayout, QSpinBox, QDoubleSpinBox
+    QLabel
 )
 from PyQt5.QtPrintSupport import QPrinter
-from PyQt5.QtGui import QTextDocument, QPixmap
+from PyQt5.QtGui import QTextDocument
+from PyQt5.QtCore import Qt
 import sqlite3
 import os
 import datetime
@@ -29,10 +30,13 @@ class BillingWindow(QWidget):
         form_layout = QFormLayout()
 
         self.patient_input = QLineEdit()
+        self.patient_input.setPlaceholderText("Enter Patient ID or Name")
+        self.patient_input.setStyleSheet("color: white;")
         self.patient_input.textChanged.connect(self.load_patient_info)
         form_layout.addRow("Patient ID or Name:", self.patient_input)
 
         self.patient_details_label = QLabel("")
+        self.patient_details_label.setStyleSheet("color: white; font-weight: bold;")
         form_layout.addRow("Patient Info:", self.patient_details_label)
 
         layout.addLayout(form_layout)
@@ -40,16 +44,46 @@ class BillingWindow(QWidget):
         self.services_table = QTableWidget()
         self.services_table.setColumnCount(3)
         self.services_table.setHorizontalHeaderLabels(["Service", "Quantity", "Price"])
+        self.services_table.setStyleSheet("""
+            QHeaderView::section { background-color: #2c3e50; color: white; font-weight: bold; }
+            QTableWidget { background-color: #ecf0f1; color: black; }
+            QTableWidget::item:selected { background-color: #3498db; color: white; }
+        """)
         layout.addWidget(self.services_table)
 
         add_service_btn = QPushButton("Add Service")
+        add_service_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #2980b9; 
+                color: white; 
+                font-weight: bold; 
+                padding: 8px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #3498db;
+            }
+        """)
         add_service_btn.clicked.connect(self.add_service_row)
         layout.addWidget(add_service_btn)
 
         self.total_label = QLabel("Total: ₹0.00")
+        self.total_label.setStyleSheet("font-size: 16px; font-weight: bold; color: #27ae60;")
         layout.addWidget(self.total_label)
 
         generate_btn = QPushButton("Generate Bill")
+        generate_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60; 
+                color: white; 
+                font-weight: bold; 
+                padding: 10px;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: #2ecc71;
+            }
+        """)
         generate_btn.clicked.connect(self.generate_bill)
         layout.addWidget(generate_btn)
 
@@ -83,9 +117,10 @@ class BillingWindow(QWidget):
         row = self.services_table.rowCount()
         self.services_table.insertRow(row)
 
-        self.services_table.setItem(row, 0, QTableWidgetItem(""))  # Service
-        self.services_table.setItem(row, 1, QTableWidgetItem("1"))  # Quantity
-        self.services_table.setItem(row, 2, QTableWidgetItem("0.00"))  # Price
+        for col, value in enumerate(["", "1", "0.00"]):
+            item = QTableWidgetItem(value)
+            item.setForeground(Qt.black)
+            self.services_table.setItem(row, col, item)
 
     def generate_bill(self):
         if not hasattr(self, 'patient_id') or not self.patient_id:
@@ -143,12 +178,9 @@ class BillingWindow(QWidget):
         QMessageBox.information(self, "Success", "Bill generated successfully!")
         self.services_table.setRowCount(0)
 
-        # Generate PDF
         self.generate_pdf_bill(services, total)
 
     def generate_pdf_bill(self, services, total):
-        from PyQt5.QtCore import QDir
-
         logo_path = self.get_logo_path()
         patient_info = self.patient_details_label.text()
         date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -158,8 +190,10 @@ class BillingWindow(QWidget):
         html = f"""
         <html>
         <head><style>
-        table {{ border-collapse: collapse; width: 100%; }}
-        th, td {{ border: 1px solid #000; padding: 8px; text-align: left; }}
+        body {{ color: black; font-family: Arial, sans-serif; }}
+        table {{ border-collapse: collapse; width: 100%; color: black; }}
+        th, td {{ border: 1px solid #000; padding: 8px; text-align: left; color: black; }}
+        h2, h3, p {{ color: black; }}
         </style></head>
         <body>
             <img src="{logo_path}" height="80" />
